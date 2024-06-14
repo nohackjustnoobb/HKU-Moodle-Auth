@@ -8,7 +8,7 @@ with open("cookies", "rb") as f:
     session.cookies.update(pickle.load(f))
 
 
-resp = session.get("http://moodle.hku.hk")
+resp = session.get("https://moodle.hku.hk")
 soup = BeautifulSoup(resp.content, "lxml")
 print("Courses List:")
 for link in soup.select("#inst476784 > div > div > ul > li > div > a"):

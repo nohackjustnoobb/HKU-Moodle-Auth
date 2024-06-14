@@ -17,10 +17,16 @@ def get_cookies(email, password):
 
     # Get the cookies
     resp = session.get("https://moodle.hku.hk/login/index.php?authCAS=CAS")
+    resp.raise_for_status()
+
     # Redirect to hku portal login page
     resp = session.get("https://moodle.hku.hk/login/index.php?authCAS=CAS")
+    resp.raise_for_status()
+
     # Redirect to microsoft login page
     resp = session.post(resp.url, data={"email": email})
+    resp.raise_for_status()
+
     # Login with email and password
     resp = session.post(
         resp.url,
@@ -30,6 +36,8 @@ def get_cookies(email, password):
             "AuthMethod": "FormsAuthentication",
         },
     )
+    resp.raise_for_status()
+
     # Get the data for the next redirection
     soup = BeautifulSoup(resp.content, "lxml")
     url = soup.form["action"]
@@ -38,7 +46,9 @@ def get_cookies(email, password):
         if i["type"] != "submit":
             data[i["name"]] = i["value"]
     resp = session.post(url, data=data)
-    # Skip the stay signed in page
+    resp.raise_for_status()
+
+    # Skip the "stay signed in" page
     config = json.loads(re.search("\$Config=({.*});", resp.text).group(1))
     url = urlparse(resp.url)._replace(path=config["urlPost"]).geturl()
     data = {
@@ -51,6 +61,22 @@ def get_cookies(email, password):
         "hpgrequestid": config["sessionId"],
     }
     resp = session.post(url, data=data)
+    resp.raise_for_status()
+
+    # Skip the "stay signed in" page
+    config = json.loads(re.search("\$Config=({.*});", resp.text).group(1))
+    url = urlparse(resp.url)._replace(path=config["urlPost"]).geturl()
+    data = {
+        "LoginOptions": 1,
+        "type": 28,
+        "DontShowAgain": True,
+        config["sFTName"]: config["sFT"],
+        "ctx": config["sCtx"],
+        config["sCanaryTokenName"]: config["canary"],
+        "hpgrequestid": config["sessionId"],
+    }
+    resp = session.post(url, data=data)
+    resp.raise_for_status()
 
     with open("cookies", "wb") as file:
         pickle.dump(session.cookies, file)
